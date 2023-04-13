@@ -13,3 +13,13 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+
+#conf
+*.yml
+./config.*
+
+
+# build
+ter-tool
+wuliu
