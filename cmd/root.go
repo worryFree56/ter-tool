@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"ter-tool/cmd/server"
+	"ter-tool/cmd/gpt"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
@@ -17,7 +17,8 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	rootCmd.AddCommand(
-		server.NewServerCmd(),
+		// server.NewServerCmd(),
+		gpt.NewGptCmd(),
 	)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

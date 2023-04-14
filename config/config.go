@@ -13,6 +13,7 @@ const (
 
 type Config struct {
 	Servers map[string]Server
+	Openapi map[string]string
 }
 
 type Server struct {
