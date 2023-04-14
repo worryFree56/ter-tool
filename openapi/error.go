@@ -1,4 +1,4 @@
-package gpt
+package openapi
 
 import "fmt"
 

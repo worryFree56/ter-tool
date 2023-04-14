@@ -2,19 +2,14 @@ package gpt
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"log"
-	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"ter-tool/config"
+	"ter-tool/openapi"
 	"ter-tool/tool"
 
 	"github.com/spf13/cobra"
@@ -28,9 +23,8 @@ var (
 	apiKey string
 	proxy  string
 	//会话存储信息
-	msg = ChatCompletionRequest{
-		Model:  "gpt-3.5-turbo",
-		Stream: true,
+	msg = openapi.ChatCompletionRequest{
+		Model: "gpt-3.5-turbo",
 		// MaxTokens: 4096,
 	}
 	exitChan chan os.Signal
@@ -55,7 +49,7 @@ func NewGptCmd() *cobra.Command {
 	}
 	gptCmd.Flags().StringVar(&apiKey, "api-key", config.Cfg.Openapi["api-key"], "通过 https://platform.openai.com/account/api-keys 获取的api-Key")
 	gptCmd.Flags().StringVarP(&proxy, "proxy", "x", config.Cfg.Openapi["proxy"], "代理地址")
-
+	gptCmd.Flags().Bool("stream", false, "设置true，数据流输出")
 	return gptCmd
 }
 
@@ -92,77 +86,55 @@ func run(cmd *cobra.Command, args []string) error {
 			}
 		}
 		// 调用 GPT-3 API 获取响应
-		umsg := ChatCompletionMessage{
-			Role:    ChatMessageRoleUser,
+		umsg := openapi.ChatCompletionMessage{
+			Role:    openapi.ChatMessageRoleUser,
 			Content: userInput,
 		}
 		msg.Messages = append(msg.Messages, umsg)
-		stream, err := sendAPIRequest(proxy, apiEndpoint+"/chat/completions", apiKey, msg)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error:", err)
-			continue
-		}
-		defer stream.response.Body.Close()
-		fmt.Print("AI: ")
-		var echoMsg string
-		for {
-			resposne, err := stream.Recv()
-			if errors.Is(err, io.EOF) {
-				// fmt.Println("\nStream finished")
-				break
-			}
+		if ok, _ := cmd.Flags().GetBool("stream"); ok {
+			msg.Stream = true
+
+			resp, err := msg.SendChatStreamRequest(proxy, apiEndpoint+"/chat/completions", apiKey, msg)
 			if err != nil {
-				fmt.Printf("\nStream error:%v\n", err)
-				break
+				fmt.Fprintln(os.Stderr, "Error:", err)
+				continue
 			}
-			con := resposne.Choices[0].Delta.Content
-			echoMsg += con
-			print(con)
+			defer resp.Close()
+			fmt.Print("AI: ")
+			var echoMsg string
+			for {
+				resposne, err := resp.Recv()
+				if errors.Is(err, io.EOF) {
+					// fmt.Println("\nStream finished")
+					break
+				}
+				if err != nil {
+					fmt.Printf("\nStream error:1111%v\n", err.Error())
+					break
+				}
+				con := resposne.Choices[0].Delta.Content
+				echoMsg += con
+				print(con)
+			}
+			msg.Messages = append(msg.Messages, openapi.ChatCompletionMessage{
+				Role:    openapi.ChatMessageRoleAssistant,
+				Content: echoMsg,
+			})
+		} else {
+			resp, err := msg.SendChatRequest(apiEndpoint+"/chat/completions", apiKey, msg)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Error:", err)
+				continue
+			}
+			fmt.Print("AI: ")
+			print(resp.Choices[0].Message.Content)
+			msg.Messages = append(msg.Messages, openapi.ChatCompletionMessage{
+				Role:    openapi.ChatMessageRoleAssistant,
+				Content: resp.Choices[0].Message.Content,
+			})
 		}
-		msg.Messages = append(msg.Messages, ChatCompletionMessage{
-			Role:    ChatMessageRoleAssistant,
-			Content: echoMsg,
-		})
+
 	}
 
 	return nil
-}
-
-// 发送请求
-func sendAPIRequest(proxy, endpoint string, apiKey string, body interface{}) (stream *StreamReader, err error) {
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(string(jsonBody)))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	//stream = true
-	req.Header.Set("Accept", "text/event-stream")
-
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
-	proxyURL, err := url.Parse(proxy)
-	if err != nil {
-		log.Fatal(err)
-		return nil, err
-	}
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-		},
-	}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	stream = &StreamReader{
-		reader:   bufio.NewReader(resp.Body),
-		response: resp,
-		buffer:   &bytes.Buffer{},
-	}
-	return
 }
