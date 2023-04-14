@@ -28,7 +28,7 @@ func init() {
 }
 
 // WriteLog return error
-func WriteLog(msg string) error {
+func WriteLog(msg string) (string, error) {
 	var (
 		err      error
 		f        *os.File
@@ -39,14 +39,14 @@ func WriteLog(msg string) error {
 		err = CreateDir(newPath)
 		if err != nil {
 			log.Println(err)
-			return err
+			return "", err
 		}
 	}
 	f, err = os.OpenFile(newPath+fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	_, err = io.WriteString(f, LineFeed+time.Now().Format("2006-01-02 15:04:05")+" "+msg)
 
 	defer f.Close()
-	return err
+	return newPath, err
 }
 
 // CreateDir  文件夹创建

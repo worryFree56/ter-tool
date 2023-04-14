@@ -14,7 +14,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"ter-tool/config"
 	"ter-tool/tool"
 
 	"github.com/spf13/cobra"
@@ -37,10 +36,11 @@ var (
 )
 
 func saveMsgHandler() {
-	s := <-exitChan
-	fmt.Println("退出信号:", s)
+	<-exitChan
 	//写入聊天内容
-	tool.WriteLog(tool.PrettyPrint(msg.Messages))
+	dir, _ := tool.WriteLog(tool.PrettyPrint(msg.Messages))
+	fmt.Println("异常退出，写入聊天记录,文件存储在:", dir)
+
 	os.Exit(1)
 }
 
@@ -53,8 +53,8 @@ func NewGptCmd() *cobra.Command {
 		Example: fmt.Sprintln("$ wuliu cg -x http://127.0.0.1:7890"),
 		RunE:    run,
 	}
-	gptCmd.Flags().StringVar(&apiKey, "api-key", config.Cfg.Openapi["api-key"], "通过 https://platform.openai.com/account/api-keys 获取的api-Key")
-	gptCmd.Flags().StringVarP(&proxy, "proxy", "x", config.Cfg.Openapi["proxy"], "代理地址")
+	gptCmd.Flags().StringVar(&apiKey, "api-key", "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", "通过 https://platform.openai.com/account/api-keys 获取的api-Key")
+	gptCmd.Flags().StringVarP(&proxy, "proxy", "x", "", "代理地址")
 
 	return gptCmd
 }
@@ -71,8 +71,8 @@ func run(cmd *cobra.Command, args []string) error {
 
 	go saveMsgHandler()
 	defer func() {
-		fmt.Println("写入聊天记录")
-		tool.WriteLog(tool.PrettyPrint(msg.Messages))
+		dir, _ := tool.WriteLog(tool.PrettyPrint(msg.Messages))
+		fmt.Println("写入聊天记录,文件存储在:", dir)
 	}()
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
