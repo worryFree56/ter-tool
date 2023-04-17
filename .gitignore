@@ -15,7 +15,7 @@
 # vendor/
 filelog/*
 build/
-
+tmp/
 #conf
 *.yml
 ./config.*
