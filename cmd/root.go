@@ -22,6 +22,7 @@ func Execute() {
 		gpt.NewGptCmd(),
 		NewDocCmd(),
 		account.NewAccountCmd(),
+		NewYmlCmd(),
 	)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

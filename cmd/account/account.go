@@ -2,6 +2,7 @@ package account
 
 import (
 	"encoding/hex"
+	"errors"
 	"log"
 	"ter-tool/config"
 	"ter-tool/tool"
@@ -9,6 +10,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+// yaml存储信息前缀
+var accountPrefix = "accounts."
 
 // 账号存储
 func NewAccountCmd() *cobra.Command {
@@ -33,9 +37,9 @@ func WriteCmd() *cobra.Command {
 		Use:   "write",
 		Short: "写入新的平台账号加密数据",
 		Run: func(cmd *cobra.Command, args []string) {
-			secret, err := cmd.Flags().GetString("secret")
-			if err != nil {
-				log.Println("获取 secret 失败：", err)
+			secret, _ := cmd.Flags().GetString("secret")
+			if err := ValSecret(secret); err != nil {
+				log.Println(err)
 				return
 			}
 			logo, _ := cmd.Flags().GetString("logo")
@@ -50,8 +54,8 @@ func WriteCmd() *cobra.Command {
 			aesSecret := []byte(secret)
 			s := tool.AesEncryptCFB(aesInfo, aesSecret)
 
-			viper.Set("accounts."+logo, hex.EncodeToString(s))
-			err = viper.WriteConfig()
+			viper.Set(accountPrefix+logo, hex.EncodeToString(s))
+			err := viper.WriteConfig()
 			if err != nil {
 				log.Println("添加新账号出错：", err)
 			}
@@ -72,6 +76,10 @@ func UpdateCmd() *cobra.Command {
 				log.Println("获取 secret 失败：", err)
 				return
 			}
+			if secret == "" || len(secret) != 16 {
+				log.Println("secret 必填项,切长度为16")
+				return
+			}
 			logo, _ := cmd.Flags().GetString("logo")
 			info, _ := cmd.Flags().GetString("info")
 
@@ -84,7 +92,7 @@ func UpdateCmd() *cobra.Command {
 			aesSecret := []byte(secret)
 			s := tool.AesEncryptCFB(aesInfo, aesSecret)
 
-			viper.Set("accounts."+logo, hex.EncodeToString(s))
+			viper.Set(accountPrefix+logo, hex.EncodeToString(s))
 			err = viper.WriteConfig()
 			if err != nil {
 				log.Println("修改信息出错：", err)
@@ -106,8 +114,8 @@ func LookCmd() *cobra.Command {
 				log.Println("获取 secret 失败：", err)
 				return
 			}
-			if secret == "" {
-				log.Println("secret 必填项")
+			if secret == "" || len(secret) != 16 {
+				log.Println("secret 必填项,切长度为16")
 				return
 			}
 			logo, _ := cmd.Flags().GetString("logo")
@@ -125,4 +133,12 @@ func LookCmd() *cobra.Command {
 	}
 	lCmd.Flags().String("logo", "", "查看信息的标识，值来源于--lists")
 	return lCmd
+}
+
+// 验证密钥
+func ValSecret(key string) error {
+	if key == "" || len(key) != 16 {
+		return errors.New("secret必填项且长度为16")
+	}
+	return nil
 }

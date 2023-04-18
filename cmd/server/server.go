@@ -14,6 +14,8 @@ import (
 	"golang.org/x/term"
 )
 
+// var serverPrefix = "servers."
+
 func NewServerCmd() *cobra.Command {
 
 	serCmd := &cobra.Command{
