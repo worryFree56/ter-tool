@@ -28,8 +28,8 @@ func NewConfig() {
 	//TODO: 设置配置文件目录
 	viper.SetConfigName(".wuliu")
 	viper.SetConfigType("yml")
-	// viper.AddConfigPath("$HOME/")
-	viper.AddConfigPath(".")
+	viper.AddConfigPath("$HOME/")
+	// viper.AddConfigPath(".")
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			//配置不存在，在当前用户目录创建配置
@@ -102,7 +102,7 @@ func DefaultConfig() Config {
 			},
 		},
 		Openapi: map[string]string{
-			"api-key": "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",
+			"api-key": "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",
 			"proxy":   "http://127.0.0.1:7890",
 		},
 		Accounts: map[string]string{
