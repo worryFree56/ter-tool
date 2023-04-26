@@ -127,7 +127,6 @@ func LookCmd() *cobra.Command {
 			aesInfo, _ := hex.DecodeString(info)
 			aesSecret := []byte(secret)
 			s := tool.AesDecryptCFB(aesInfo, aesSecret)
-
 			log.Println(string(s))
 		},
 	}

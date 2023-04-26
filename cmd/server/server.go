@@ -33,10 +33,11 @@ func NewServerCmd() *cobra.Command {
 func NewLoginCmd() *cobra.Command {
 
 	var loginCmd = &cobra.Command{
-		Use:     "login",
+		Use:     "login [server-name]",
 		Aliases: []string{"l"},
 		Short:   "登录给定信息服务器ssh",
 		Args:    cobra.ExactArgs(1),
+		Example: fmt.Sprintln("$ wuliu server l server-name"),
 		Run: func(cmd *cobra.Command, args []string) {
 			serS, err := cmd.Flags().GetString(config.ServerEnable)
 			if err != nil {
@@ -48,7 +49,7 @@ func NewLoginCmd() *cobra.Command {
 				return
 			}
 			sshInfo := config.Cfg.GetServer()[args[0]]
-			cli, err := ssh.Dial("tcp", sshInfo.IP, &ssh.ClientConfig{
+			cli, err := ssh.Dial("tcp", sshInfo.IP+":22", &ssh.ClientConfig{
 				User: sshInfo.User,
 				Auth: []ssh.AuthMethod{ssh.Password(sshInfo.Pwd)},
 				HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
